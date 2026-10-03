@@ -1,0 +1,41 @@
+package br.com.migracao.core.dto.paciente;
+
+public record AnamneseResponse(
+
+        boolean algumTratamento,
+        boolean hospitalizado,
+        String motivo,
+        boolean alergiaMedicamentoAnestesico,
+        String qualCirurgia,
+        boolean transfusaoSangue,
+        boolean bebidaAlcoolica,
+        boolean problemaCardiaco,
+        boolean febreReumatica,
+        String especialidade,
+        String quandoHospitalizado,
+        boolean tomaMedicamento,
+        String alergia,
+        boolean sangraMuito,
+        boolean fumante,
+        Boolean desmaioTontura,
+        boolean hiv,
+        boolean tuberculose,
+        String nomeMedico,
+        String tempo,
+        String medicamento,
+        boolean cirurgia,
+        boolean cirurgiaBucal,
+        Integer cigarroDia,
+        boolean respiratorio,
+        boolean hepatite,
+        boolean demoraCicatrizar,
+        boolean depressao,
+        boolean diabete,
+        boolean hipertensao,
+        boolean reumatismo,
+        boolean renal,
+        boolean problemaNervoso,
+        boolean anemia,
+        Boolean epilepsia
+) {
+}
