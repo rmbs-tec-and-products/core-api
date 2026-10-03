@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: core-api
+  profiles:
+    default: local
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  security:
+    user-name: ${APP_USER_NAME:user}
+    user-password: ${APP_USER_PASSWORD:user123}
+    admin-name: ${APP_ADMIN_NAME:admin}
+    admin-password: ${APP_ADMIN_PASSWORD:admin123}
