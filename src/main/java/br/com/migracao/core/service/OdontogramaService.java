@@ -47,6 +47,14 @@ public class OdontogramaService {
                     41, 42, 43, 44, 45, 46, 47, 48
             );
 
+    private static final Set<Integer> DENTES_DECIDUOS =
+            Set.of(
+                    51, 52, 53, 54, 55,
+                    61, 62, 63, 64, 65,
+                    71, 72, 73, 74, 75,
+                    81, 82, 83, 84, 85
+            );
+
     private final OdontogramaRepository odontogramaRepository;
     private final OdontogramaDenteRepository odontogramaDenteRepository;
     private final OdontogramaProcedimentoRepository odontogramaProcedimentoRepository;
@@ -58,9 +66,15 @@ public class OdontogramaService {
     public OdontogramaResponse cadastrar(
             OdontogramaRequest request
     ) {
+
         Paciente paciente =
                 buscarPaciente(
                         request.pacienteCodigo()
+                );
+
+        boolean odontopediatria =
+                Boolean.TRUE.equals(
+                        request.odontopediatria()
                 );
 
         Odontograma odontograma =
@@ -70,8 +84,12 @@ public class OdontogramaService {
                                         .ODONTOGRAMA
                                         .getCodigo()
                         )
-                        .paciente(paciente)
-                        .valor(BigDecimal.ZERO)
+                        .paciente(
+                                paciente
+                        )
+                        .valor(
+                                BigDecimal.ZERO
+                        )
                         .data(
                                 normalizarData(
                                         LocalDateTime.now()
@@ -90,7 +108,9 @@ public class OdontogramaService {
                                         paciente
                                 )
                         )
-                        .odontopediatria(false)
+                        .odontopediatria(
+                                odontopediatria
+                        )
                         .build();
 
         Odontograma odontogramaSalvo =
@@ -107,12 +127,14 @@ public class OdontogramaService {
     public List<OdontogramaResumoResponse> listarPorPaciente(
             Integer pacienteCodigo
     ) {
-        buscarPaciente(pacienteCodigo);
+
+        buscarPaciente(
+                pacienteCodigo
+        );
 
         return odontogramaRepository
-                .findByPaciente_CodigoAndOdontopediatriaOrderByDataDesc(
-                        pacienteCodigo,
-                        false
+                .findByPaciente_CodigoOrderByDataDesc(
+                        pacienteCodigo
                 )
                 .stream()
                 .map(
@@ -125,8 +147,11 @@ public class OdontogramaService {
     public OdontogramaResponse buscarPorCodigo(
             Integer codigo
     ) {
+
         return montarResponse(
-                buscarEntidade(codigo)
+                buscarEntidade(
+                        codigo
+                )
         );
     }
 
@@ -135,8 +160,11 @@ public class OdontogramaService {
             Integer codigo,
             OdontogramaStatusRequest request
     ) {
+
         Odontograma odontograma =
-                buscarEntidade(codigo);
+                buscarEntidade(
+                        codigo
+                );
 
         odontograma.setStatus(
                 request.status()
@@ -157,15 +185,15 @@ public class OdontogramaService {
             Integer odontogramaCodigo,
             Integer dente
     ) {
-        validarDentePermanente(dente);
 
         Odontograma odontograma =
                 buscarEntidade(
                         odontogramaCodigo
                 );
 
-        validarOdontogramaAdulto(
-                odontograma
+        validarDenteDoOdontograma(
+                odontograma,
+                dente
         );
 
         OdontogramaDenteId id =
@@ -175,7 +203,9 @@ public class OdontogramaService {
                 );
 
         if (odontogramaDenteRepository
-                .existsById(id)) {
+                .existsById(
+                        id
+                )) {
 
             throw new BusinessRuleException(
                     "O dente "
@@ -186,8 +216,12 @@ public class OdontogramaService {
 
         OdontogramaDente exclusao =
                 OdontogramaDente.builder()
-                        .id(id)
-                        .odontograma(odontograma)
+                        .id(
+                                id
+                        )
+                        .odontograma(
+                                odontograma
+                        )
                         .build();
 
         odontogramaDenteRepository.save(
@@ -204,15 +238,15 @@ public class OdontogramaService {
             Integer odontogramaCodigo,
             Integer dente
     ) {
-        validarDentePermanente(dente);
 
         Odontograma odontograma =
                 buscarEntidade(
                         odontogramaCodigo
                 );
 
-        validarOdontogramaAdulto(
-                odontograma
+        validarDenteDoOdontograma(
+                odontograma,
+                dente
         );
 
         OdontogramaDenteId id =
@@ -222,7 +256,9 @@ public class OdontogramaService {
                 );
 
         if (!odontogramaDenteRepository
-                .existsById(id)) {
+                .existsById(
+                        id
+                )) {
 
             throw new BusinessRuleException(
                     "O dente "
@@ -232,9 +268,12 @@ public class OdontogramaService {
         }
 
         odontogramaDenteRepository
-                .deleteById(id);
+                .deleteById(
+                        id
+                );
 
-        odontogramaDenteRepository.flush();
+        odontogramaDenteRepository
+                .flush();
 
         return montarResponse(
                 odontograma
@@ -246,16 +285,14 @@ public class OdontogramaService {
             Integer odontogramaCodigo,
             OdontogramaProcedimentoRequest request
     ) {
+
         Odontograma odontograma =
                 buscarEntidade(
                         odontogramaCodigo
                 );
 
-        validarOdontogramaAdulto(
-                odontograma
-        );
-
-        validarDentePermanente(
+        validarDenteDoOdontograma(
+                odontograma,
                 request.dente()
         );
 
@@ -281,14 +318,22 @@ public class OdontogramaService {
 
         OdontogramaProcedimento item =
                 OdontogramaProcedimento.builder()
-                        .odontograma(odontograma)
-                        .procedimento(procedimento)
-                        .dente(request.dente())
+                        .odontograma(
+                                odontograma
+                        )
+                        .procedimento(
+                                procedimento
+                        )
+                        .dente(
+                                request.dente()
+                        )
                         .status(
                                 request.status()
                                         .getCodigo()
                         )
-                        .valor(valor)
+                        .valor(
+                                valor
+                        )
                         .face(
                                 converterFacesParaBanco(
                                         request.faces()
@@ -308,7 +353,9 @@ public class OdontogramaService {
 
         OdontogramaProcedimento salvo =
                 odontogramaProcedimentoRepository
-                        .saveAndFlush(item);
+                        .saveAndFlush(
+                                item
+                        );
 
         recalcularValorOdontograma(
                 odontograma
@@ -326,14 +373,11 @@ public class OdontogramaService {
             Integer itemCodigo,
             OdontogramaProcedimentoRequest request
     ) {
+
         Odontograma odontograma =
                 buscarEntidade(
                         odontogramaCodigo
                 );
-
-        validarOdontogramaAdulto(
-                odontograma
-        );
 
         OdontogramaProcedimento item =
                 buscarItem(
@@ -345,7 +389,8 @@ public class OdontogramaService {
                 item
         );
 
-        validarDentePermanente(
+        validarDenteDoOdontograma(
+                odontograma,
                 request.dente()
         );
 
@@ -400,7 +445,9 @@ public class OdontogramaService {
 
         OdontogramaProcedimento salvo =
                 odontogramaProcedimentoRepository
-                        .saveAndFlush(item);
+                        .saveAndFlush(
+                                item
+                        );
 
         recalcularValorOdontograma(
                 odontograma
@@ -417,6 +464,7 @@ public class OdontogramaService {
             Integer odontogramaCodigo,
             Integer itemCodigo
     ) {
+
         Odontograma odontograma =
                 buscarEntidade(
                         odontogramaCodigo
@@ -433,7 +481,9 @@ public class OdontogramaService {
         );
 
         odontogramaProcedimentoRepository
-                .delete(item);
+                .delete(
+                        item
+                );
 
         odontogramaProcedimentoRepository
                 .flush();
@@ -446,6 +496,7 @@ public class OdontogramaService {
     private void recalcularValorOdontograma(
             Odontograma odontograma
     ) {
+
         List<OdontogramaProcedimento> itens =
                 odontogramaProcedimentoRepository
                         .findByOdontograma_CodigoOrderByCodigoAsc(
@@ -481,6 +532,7 @@ public class OdontogramaService {
     private boolean entraNoValorPendente(
             OdontogramaProcedimento item
     ) {
+
         return !StatusProcedimentoOdontograma
                 .CONCLUIDO
                 .getCodigo()
@@ -492,9 +544,12 @@ public class OdontogramaService {
     private void validarStatusParaEdicao(
             StatusProcedimentoOdontograma status
     ) {
+
         if (StatusProcedimentoOdontograma
                 .CONCLUIDO
-                .equals(status)) {
+                .equals(
+                        status
+                )) {
 
             throw new BusinessRuleException(
                     "Para concluir um procedimento utilize a operação de conclusão."
@@ -505,6 +560,7 @@ public class OdontogramaService {
     private void validarItemNaoConcluido(
             OdontogramaProcedimento item
     ) {
+
         if (StatusProcedimentoOdontograma
                 .CONCLUIDO
                 .getCodigo()
@@ -518,10 +574,49 @@ public class OdontogramaService {
         }
     }
 
+    private void validarDenteDoOdontograma(
+            Odontograma odontograma,
+            Integer dente
+    ) {
+
+        if (dente == null) {
+
+            throw new BusinessRuleException(
+                    "Número do dente é obrigatório."
+            );
+        }
+
+        if (Boolean.TRUE.equals(
+                odontograma.getOdontopediatria()
+        )) {
+
+            if (!DENTES_DECIDUOS.contains(
+                    dente
+            )) {
+
+                throw new BusinessRuleException(
+                        "Número de dente decíduo inválido para odontograma pediátrico."
+                );
+            }
+
+            return;
+        }
+
+        if (!DENTES_PERMANENTES.contains(
+                dente
+        )) {
+
+            throw new BusinessRuleException(
+                    "Número de dente permanente inválido para odontograma adulto."
+            );
+        }
+    }
+
     private void validarDenteDisponivel(
             Integer odontogramaCodigo,
             Integer dente
     ) {
+
         OdontogramaDenteId id =
                 new OdontogramaDenteId(
                         odontogramaCodigo,
@@ -529,7 +624,9 @@ public class OdontogramaService {
                 );
 
         if (odontogramaDenteRepository
-                .existsById(id)) {
+                .existsById(
+                        id
+                )) {
 
             throw new BusinessRuleException(
                     "O dente "
@@ -543,11 +640,14 @@ public class OdontogramaService {
             BigDecimal valorInformado,
             Procedimento procedimento
     ) {
+
         if (valorInformado != null) {
+
             return valorInformado;
         }
 
         if (procedimento.getValor() != null) {
+
             return procedimento.getValor();
         }
 
@@ -557,7 +657,10 @@ public class OdontogramaService {
     private String converterFacesParaBanco(
             List<FaceDente> faces
     ) {
-        if (faces == null || faces.isEmpty()) {
+
+        if (faces == null
+                || faces.isEmpty()) {
+
             return null;
         }
 
@@ -578,7 +681,9 @@ public class OdontogramaService {
     private String normalizarObservacao(
             String observacao
     ) {
+
         if (observacao == null) {
+
             return null;
         }
 
@@ -593,6 +698,7 @@ public class OdontogramaService {
     private OdontogramaResponse montarResponse(
             Odontograma odontograma
     ) {
+
         List<OdontogramaDente> dentes =
                 odontogramaDenteRepository
                         .findByOdontograma_CodigoOrderById_DenteAsc(
@@ -615,8 +721,11 @@ public class OdontogramaService {
     private Odontograma buscarEntidade(
             Integer codigo
     ) {
+
         return odontogramaRepository
-                .findById(codigo)
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Odontograma não encontrado. Código: "
@@ -628,8 +737,11 @@ public class OdontogramaService {
     private Paciente buscarPaciente(
             Integer codigo
     ) {
+
         return pacienteRepository
-                .findById(codigo)
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Paciente não encontrado. Código: "
@@ -641,8 +753,11 @@ public class OdontogramaService {
     private Procedimento buscarProcedimento(
             Integer codigo
     ) {
+
         return procedimentoRepository
-                .findById(codigo)
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Procedimento não encontrado. Código: "
@@ -655,6 +770,7 @@ public class OdontogramaService {
             Integer odontogramaCodigo,
             Integer itemCodigo
     ) {
+
         return odontogramaProcedimentoRepository
                 .findByCodigoAndOdontograma_Codigo(
                         itemCodigo,
@@ -668,33 +784,10 @@ public class OdontogramaService {
                 );
     }
 
-    private void validarOdontogramaAdulto(
-            Odontograma odontograma
-    ) {
-        if (Boolean.TRUE.equals(
-                odontograma.getOdontopediatria()
-        )) {
-            throw new BusinessRuleException(
-                    "Esta operação pertence ao odontograma adulto."
-            );
-        }
-    }
-
-    private void validarDentePermanente(
-            Integer dente
-    ) {
-        if (dente == null
-                || !DENTES_PERMANENTES.contains(dente)) {
-
-            throw new BusinessRuleException(
-                    "Número de dente permanente inválido."
-            );
-        }
-    }
-
     private String obterTelefonePaciente(
             Paciente paciente
     ) {
+
         if (paciente.getTelefone() != null
                 && !paciente.getTelefone().isBlank()) {
 
@@ -713,6 +806,9 @@ public class OdontogramaService {
     private LocalDateTime normalizarData(
             LocalDateTime data
     ) {
-        return data.withNano(0);
+
+        return data.withNano(
+                0
+        );
     }
 }

@@ -8,7 +8,13 @@ import java.util.List;
 public interface OdontogramaRepository
         extends JpaRepository<Odontograma, Integer> {
 
-    List<Odontograma> findByPaciente_CodigoAndOdontopediatriaOrderByDataDesc(
+    List<Odontograma>
+    findByPaciente_CodigoOrderByDataDesc(
+            Integer pacienteCodigo
+    );
+
+    List<Odontograma>
+    findByPaciente_CodigoAndOdontopediatriaOrderByDataDesc(
             Integer pacienteCodigo,
             Boolean odontopediatria
     );

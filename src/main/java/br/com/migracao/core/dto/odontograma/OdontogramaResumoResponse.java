@@ -17,7 +17,9 @@ public record OdontogramaResumoResponse(
         LocalDateTime data,
 
         StatusOdontograma status,
-        String statusDescricao
+        String statusDescricao,
+
+        Boolean odontopediatria
 
 ) {
 }

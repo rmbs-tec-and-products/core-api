@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotNull;
 public record OdontogramaRequest(
 
         @NotNull(message = "Paciente é obrigatório")
-        Integer pacienteCodigo
+        Integer pacienteCodigo,
+
+        Boolean odontopediatria
 
 ) {
 }

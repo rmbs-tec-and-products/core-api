@@ -24,6 +24,7 @@ public class OdontogramaMapper {
             List<OdontogramaDente> dentesExcluidos,
             List<OdontogramaProcedimento> procedimentos
     ) {
+
         TipoOdontograma tipo =
                 TipoOdontograma.fromCodigo(
                         odontograma.getTipo()
@@ -43,16 +44,19 @@ public class OdontogramaMapper {
 
         List<OdontogramaProcedimentoResponse> itens =
                 procedimentos.stream()
-                        .map(this::toProcedimentoResponse)
+                        .map(
+                                this::toProcedimentoResponse
+                        )
                         .toList();
 
         return new OdontogramaResponse(
                 odontograma.getCodigo(),
 
                 tipo,
-                tipo != null
-                        ? tipo.getDescricao()
-                        : null,
+                obterTipoDescricao(
+                        odontograma,
+                        tipo
+                ),
 
                 odontograma.getPaciente() != null
                         ? odontograma.getPaciente().getCodigo()
@@ -79,6 +83,7 @@ public class OdontogramaMapper {
     public OdontogramaResumoResponse toResumoResponse(
             Odontograma odontograma
     ) {
+
         TipoOdontograma tipo =
                 TipoOdontograma.fromCodigo(
                         odontograma.getTipo()
@@ -93,9 +98,10 @@ public class OdontogramaMapper {
                 odontograma.getCodigo(),
 
                 tipo,
-                tipo != null
-                        ? tipo.getDescricao()
-                        : null,
+                obterTipoDescricao(
+                        odontograma,
+                        tipo
+                ),
 
                 odontograma.getValor(),
                 odontograma.getData(),
@@ -103,13 +109,16 @@ public class OdontogramaMapper {
                 status,
                 status != null
                         ? status.getDescricao()
-                        : null
+                        : null,
+
+                odontograma.getOdontopediatria()
         );
     }
 
     public OdontogramaProcedimentoResponse toProcedimentoResponse(
             OdontogramaProcedimento item
     ) {
+
         StatusProcedimentoOdontograma status =
                 StatusProcedimentoOdontograma.fromCodigo(
                         item.getStatus()
@@ -131,17 +140,39 @@ public class OdontogramaMapper {
                 item.getValor(),
 
                 item.getFace(),
-                converterFaces(item.getFace()),
+                converterFaces(
+                        item.getFace()
+                ),
 
                 item.getObservacao(),
                 item.getData()
         );
     }
 
+    private String obterTipoDescricao(
+            Odontograma odontograma,
+            TipoOdontograma tipo
+    ) {
+
+        if (Boolean.TRUE.equals(
+                odontograma.getOdontopediatria()
+        )) {
+
+            return "Odontograma pediátrico";
+        }
+
+        return tipo != null
+                ? tipo.getDescricao()
+                : null;
+    }
+
     private List<FaceDente> converterFaces(
             String face
     ) {
-        if (face == null || face.isBlank()) {
+
+        if (face == null
+                || face.isBlank()) {
+
             return List.of();
         }
 
