@@ -2,6 +2,7 @@ package br.com.migracao.core.service;
 
 import br.com.migracao.core.domain.entity.Caixa;
 import br.com.migracao.core.domain.entity.CaixaHistorico;
+import br.com.migracao.core.domain.enums.OrigemMovimentacaoCaixa;
 import br.com.migracao.core.dto.caixa.CaixaMovimentacaoRequest;
 import br.com.migracao.core.dto.caixa.CaixaMovimentacaoResponse;
 import br.com.migracao.core.dto.caixa.CaixaResponse;
@@ -23,8 +24,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CaixaService {
 
-    private static final String DESCRICAO_MOVIMENTACAO_AUTOMATICA =
+    private static final String DESCRICAO_PROCEDIMENTO =
             "FINALIZAÇÃO DE PROCEDIMENTO";
+
+    private static final String DESCRICAO_CONTA_PAGAR =
+            "PAGAMENTO DE CONTA";
+
+    private static final String DESCRICAO_CONTA_RECEBER =
+            "RECEBIMENTO DE CONTA";
 
     private final CaixaRepository caixaRepository;
     private final CaixaHistoricoRepository caixaHistoricoRepository;
@@ -33,7 +40,9 @@ public class CaixaService {
     @Transactional
     public CaixaResponse abrir() {
         LocalDateTime agora =
-                normalizarData(LocalDateTime.now());
+                normalizarData(
+                        LocalDateTime.now()
+                );
 
         if (caixaRepository
                 .findFirstByDataFechamentoIsNullOrderByDataAberturaDesc()
@@ -61,6 +70,7 @@ public class CaixaService {
                         );
 
         if (existeCaixaHoje) {
+
             throw new BusinessRuleException(
                     "Não é possível abrir dois caixas no mesmo dia."
             );
@@ -69,11 +79,18 @@ public class CaixaService {
         Caixa caixa =
                 new Caixa();
 
-        caixa.setDataAbertura(agora);
-        caixa.setDataFechamento(null);
+        caixa.setDataAbertura(
+                agora
+        );
+
+        caixa.setDataFechamento(
+                null
+        );
 
         Caixa caixaSalvo =
-                caixaRepository.save(caixa);
+                caixaRepository.save(
+                        caixa
+                );
 
         return caixaMapper.toResponse(
                 caixaSalvo,
@@ -86,16 +103,24 @@ public class CaixaService {
             Integer codigo
     ) {
         Caixa caixa =
-                buscarEntidade(codigo);
+                buscarEntidade(
+                        codigo
+                );
 
-        validarCaixaAberto(caixa);
+        validarCaixaAberto(
+                caixa
+        );
 
         caixa.setDataFechamento(
-                normalizarData(LocalDateTime.now())
+                normalizarData(
+                        LocalDateTime.now()
+                )
         );
 
         Caixa caixaSalvo =
-                caixaRepository.save(caixa);
+                caixaRepository.save(
+                        caixa
+                );
 
         return montarResponse(
                 caixaSalvo
@@ -113,7 +138,9 @@ public class CaixaService {
                                 )
                         );
 
-        return montarResponse(caixa);
+        return montarResponse(
+                caixa
+        );
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +148,9 @@ public class CaixaService {
             Integer codigo
     ) {
         return montarResponse(
-                buscarEntidade(codigo)
+                buscarEntidade(
+                        codigo
+                )
         );
     }
 
@@ -140,7 +169,10 @@ public class CaixaService {
                         ? fim
                         : dataInicio;
 
-        if (dataFim.isBefore(dataInicio)) {
+        if (dataFim.isBefore(
+                dataInicio
+        )) {
+
             throw new BusinessRuleException(
                     "Data final não pode ser menor que a data inicial."
             );
@@ -150,7 +182,8 @@ public class CaixaService {
                 dataInicio.atStartOfDay();
 
         LocalDateTime fimPeriodo =
-                dataFim.plusDays(1)
+                dataFim
+                        .plusDays(1)
                         .atStartOfDay();
 
         return caixaRepository
@@ -160,16 +193,18 @@ public class CaixaService {
                 )
                 .stream()
                 .map(caixa -> {
+
                     List<CaixaHistorico> historicos =
                             caixaHistoricoRepository
                                     .findByCaixa_CodigoOrderByDataDesc(
                                             caixa.getCodigo()
                                     );
 
-                    return caixaMapper.toResumoResponse(
-                            caixa,
-                            historicos
-                    );
+                    return caixaMapper
+                            .toResumoResponse(
+                                    caixa,
+                                    historicos
+                            );
                 })
                 .toList();
     }
@@ -180,9 +215,13 @@ public class CaixaService {
             CaixaMovimentacaoRequest request
     ) {
         Caixa caixa =
-                buscarEntidade(caixaCodigo);
+                buscarEntidade(
+                        caixaCodigo
+                );
 
-        validarCaixaAberto(caixa);
+        validarCaixaAberto(
+                caixa
+        );
 
         validarDescricaoNaoReservada(
                 request.descricao()
@@ -191,14 +230,26 @@ public class CaixaService {
         CaixaHistorico historico =
                 new CaixaHistorico();
 
-        historico.setCaixa(caixa);
+        historico.setCaixa(
+                caixa
+        );
 
         historico.setTipo(
-                request.tipo().name()
+                request.tipo()
+                        .name()
+        );
+
+        historico.setOrigem(
+                OrigemMovimentacaoCaixa.MANUAL
+        );
+
+        historico.setOrigemCodigo(
+                null
         );
 
         historico.setDescricao(
-                request.descricao().trim()
+                request.descricao()
+                        .trim()
         );
 
         historico.setValor(
@@ -212,15 +263,20 @@ public class CaixaService {
         );
 
         historico.setData(
-                normalizarData(LocalDateTime.now())
+                normalizarData(
+                        LocalDateTime.now()
+                )
         );
 
         CaixaHistorico historicoSalvo =
-                caixaHistoricoRepository.save(historico);
+                caixaHistoricoRepository.save(
+                        historico
+                );
 
-        return caixaMapper.toMovimentacaoResponse(
-                historicoSalvo
-        );
+        return caixaMapper
+                .toMovimentacaoResponse(
+                        historicoSalvo
+                );
     }
 
     @Transactional
@@ -230,9 +286,13 @@ public class CaixaService {
             CaixaMovimentacaoRequest request
     ) {
         Caixa caixa =
-                buscarEntidade(caixaCodigo);
+                buscarEntidade(
+                        caixaCodigo
+                );
 
-        validarCaixaAberto(caixa);
+        validarCaixaAberto(
+                caixa
+        );
 
         CaixaHistorico historico =
                 buscarMovimentacao(
@@ -249,11 +309,13 @@ public class CaixaService {
         );
 
         historico.setTipo(
-                request.tipo().name()
+                request.tipo()
+                        .name()
         );
 
         historico.setDescricao(
-                request.descricao().trim()
+                request.descricao()
+                        .trim()
         );
 
         historico.setValor(
@@ -267,11 +329,14 @@ public class CaixaService {
         );
 
         CaixaHistorico historicoSalvo =
-                caixaHistoricoRepository.save(historico);
+                caixaHistoricoRepository.save(
+                        historico
+                );
 
-        return caixaMapper.toMovimentacaoResponse(
-                historicoSalvo
-        );
+        return caixaMapper
+                .toMovimentacaoResponse(
+                        historicoSalvo
+                );
     }
 
     @Transactional
@@ -280,9 +345,13 @@ public class CaixaService {
             Integer movimentacaoCodigo
     ) {
         Caixa caixa =
-                buscarEntidade(caixaCodigo);
+                buscarEntidade(
+                        caixaCodigo
+                );
 
-        validarCaixaAberto(caixa);
+        validarCaixaAberto(
+                caixa
+        );
 
         CaixaHistorico historico =
                 buscarMovimentacao(
@@ -294,7 +363,9 @@ public class CaixaService {
                 historico
         );
 
-        caixaHistoricoRepository.delete(historico);
+        caixaHistoricoRepository.delete(
+                historico
+        );
     }
 
     private CaixaResponse montarResponse(
@@ -316,7 +387,9 @@ public class CaixaService {
             Integer codigo
     ) {
         return caixaRepository
-                .findById(codigo)
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Caixa não encontrado. Código: "
@@ -331,7 +404,9 @@ public class CaixaService {
     ) {
         CaixaHistorico historico =
                 caixaHistoricoRepository
-                        .findById(movimentacaoCodigo)
+                        .findById(
+                                movimentacaoCodigo
+                        )
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Movimentação de caixa não encontrada. Código: "
@@ -339,9 +414,11 @@ public class CaixaService {
                                 )
                         );
 
-        if (historico.getCaixa() == null
+        if (historico.getCaixa()
+                == null
                 || !caixaCodigo.equals(
-                historico.getCaixa().getCodigo()
+                historico.getCaixa()
+                        .getCodigo()
         )) {
 
             throw new ResourceNotFoundException(
@@ -355,7 +432,9 @@ public class CaixaService {
     private void validarCaixaAberto(
             Caixa caixa
     ) {
-        if (caixa.getDataFechamento() != null) {
+        if (caixa.getDataFechamento()
+                != null) {
+
             throw new BusinessRuleException(
                     "O caixa já está fechado."
             );
@@ -365,14 +444,26 @@ public class CaixaService {
     private void validarMovimentacaoManual(
             CaixaHistorico historico
     ) {
-        if (historico.getDescricao() != null
-                && DESCRICAO_MOVIMENTACAO_AUTOMATICA
+        if (historico.getOrigem()
+                != null
+                && historico.getOrigem()
+                != OrigemMovimentacaoCaixa.MANUAL) {
+
+            throw new BusinessRuleException(
+                    "Movimentações geradas automaticamente não podem ser alteradas ou excluídas pelo caixa."
+            );
+        }
+
+        if (historico.getDescricao()
+                != null
+                && DESCRICAO_PROCEDIMENTO
                 .equalsIgnoreCase(
-                        historico.getDescricao().trim()
+                        historico.getDescricao()
+                                .trim()
                 )) {
 
             throw new BusinessRuleException(
-                    "Movimentações geradas automaticamente pela conclusão de procedimento não podem ser alteradas ou excluídas."
+                    "Movimentações geradas automaticamente não podem ser alteradas ou excluídas pelo caixa."
             );
         }
     }
@@ -380,14 +471,22 @@ public class CaixaService {
     private void validarDescricaoNaoReservada(
             String descricao
     ) {
-        if (descricao != null
-                && DESCRICAO_MOVIMENTACAO_AUTOMATICA
-                .equalsIgnoreCase(
-                        descricao.trim()
-                )) {
+        if (descricao == null) {
+            return;
+        }
+
+        String valor =
+                descricao.trim();
+
+        if (DESCRICAO_PROCEDIMENTO
+                .equalsIgnoreCase(valor)
+                || DESCRICAO_CONTA_PAGAR
+                .equalsIgnoreCase(valor)
+                || DESCRICAO_CONTA_RECEBER
+                .equalsIgnoreCase(valor)) {
 
             throw new BusinessRuleException(
-                    "A descrição FINALIZAÇÃO DE PROCEDIMENTO é reservada para movimentações automáticas."
+                    "A descrição informada é reservada para movimentações automáticas."
             );
         }
     }

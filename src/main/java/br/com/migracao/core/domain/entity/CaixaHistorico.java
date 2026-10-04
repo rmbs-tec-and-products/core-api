@@ -1,5 +1,6 @@
 package br.com.migracao.core.domain.entity;
 
+import br.com.migracao.core.domain.enums.OrigemMovimentacaoCaixa;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,22 +21,59 @@ public class CaixaHistorico {
     @Column(name = "codigo")
     private Integer codigo;
 
-    @Column(name = "tipo", nullable = false, length = 100)
+    @Column(
+            name = "tipo",
+            nullable = false,
+            length = 100
+    )
     private String tipo;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cai_codigo", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "origem",
+            nullable = false,
+            length = 30
+    )
+    @Builder.Default
+    private OrigemMovimentacaoCaixa origem =
+            OrigemMovimentacaoCaixa.MANUAL;
+
+    @Column(name = "origem_codigo")
+    private Integer origemCodigo;
+
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "cai_codigo",
+            nullable = false
+    )
     private Caixa caixa;
 
-    @Column(name = "observacao", nullable = false, columnDefinition = "TEXT")
+    @Column(
+            name = "observacao",
+            nullable = false,
+            columnDefinition = "TEXT"
+    )
     private String observacao;
 
-    @Column(name = "descricao", length = 100)
+    @Column(
+            name = "descricao",
+            length = 100
+    )
     private String descricao;
 
-    @Column(name = "data", nullable = false)
+    @Column(
+            name = "data",
+            nullable = false
+    )
     private LocalDateTime data;
 
-    @Column(name = "valor", precision = 19, scale = 4)
+    @Column(
+            name = "valor",
+            precision = 19,
+            scale = 4
+    )
     private BigDecimal valor;
 }

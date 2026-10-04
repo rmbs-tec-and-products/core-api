@@ -1,5 +1,6 @@
 package br.com.migracao.core.domain.entity;
 
+import br.com.migracao.core.domain.enums.StatusConta;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,24 +21,61 @@ public class Conta {
     @Column(name = "codigo")
     private Integer codigo;
 
-    @Column(name = "tipo", nullable = false)
+    @Column(
+            name = "tipo",
+            nullable = false
+    )
     private Integer tipo;
 
-    @Column(name = "descricao", nullable = false, length = 100)
+    @Column(
+            name = "descricao",
+            nullable = false,
+            length = 100
+    )
     private String descricao;
 
-    @Column(name = "formapagamento", nullable = false, length = 100)
+    @Column(
+            name = "formapagamento",
+            nullable = false,
+            length = 100
+    )
     private String formaPagamento;
 
-    @Column(name = "valor", nullable = false, precision = 19, scale = 4)
+    @Column(
+            name = "valor",
+            nullable = false,
+            precision = 19,
+            scale = 4
+    )
     private BigDecimal valor;
 
     @Column(name = "dtpagamento")
     private LocalDateTime dataPagamento;
 
-    @Column(name = "dtvencimento", nullable = false)
+    @Column(
+            name = "dtvencimento",
+            nullable = false
+    )
     private LocalDateTime dataVencimento;
 
-    @Column(name = "observacao", nullable = false, columnDefinition = "TEXT")
+    @Column(
+            name = "observacao",
+            nullable = false,
+            columnDefinition = "TEXT"
+    )
     private String observacao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "status",
+            nullable = false,
+            length = 20
+    )
+    private StatusConta status;
+
+    @Column(
+            name = "recorrente",
+            nullable = false
+    )
+    private boolean recorrente;
 }

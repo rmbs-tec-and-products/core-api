@@ -6,6 +6,7 @@ import br.com.migracao.core.domain.entity.Odontograma;
 import br.com.migracao.core.domain.entity.OdontogramaProcedimento;
 import br.com.migracao.core.domain.entity.ProcedimentoProduto;
 import br.com.migracao.core.domain.entity.Produto;
+import br.com.migracao.core.domain.enums.OrigemMovimentacaoCaixa;
 import br.com.migracao.core.domain.enums.StatusProcedimentoOdontograma;
 import br.com.migracao.core.dto.odontograma.OdontogramaProcedimentoResponse;
 import br.com.migracao.core.exception.BusinessRuleException;
@@ -49,7 +50,9 @@ public class OdontogramaConclusaoService {
                         itemCodigo
                 );
 
-        validarNaoConcluido(item);
+        validarNaoConcluido(
+                item
+        );
 
         Caixa caixa =
                 buscarCaixaAberto();
@@ -84,7 +87,9 @@ public class OdontogramaConclusaoService {
         );
 
         odontogramaProcedimentoRepository
-                .saveAndFlush(item);
+                .saveAndFlush(
+                        item
+                );
 
         recalcularValorPendente(
                 odontograma
@@ -101,6 +106,7 @@ public class OdontogramaConclusaoService {
     ) {
         if (produtosUtilizados == null
                 || produtosUtilizados.isEmpty()) {
+
             return;
         }
 
@@ -130,7 +136,9 @@ public class OdontogramaConclusaoService {
                 estoqueAtual = 0;
             }
 
-            if (estoqueAtual < quantidadeNecessaria) {
+            if (estoqueAtual
+                    < quantidadeNecessaria) {
+
                 throw new BusinessRuleException(
                         "Estoque insuficiente para o produto "
                                 + produto.getNome()
@@ -149,6 +157,7 @@ public class OdontogramaConclusaoService {
     ) {
         if (produtosUtilizados == null
                 || produtosUtilizados.isEmpty()) {
+
             return;
         }
 
@@ -178,22 +187,35 @@ public class OdontogramaConclusaoService {
                         ? item.getValor()
                         : BigDecimal.ZERO;
 
-        /*
-         * Não gera uma movimentação financeira de R$ 0,00.
-         * A conclusão e a baixa de estoque continuam acontecendo.
-         */
-        if (valor.compareTo(BigDecimal.ZERO) <= 0) {
+        if (valor.compareTo(
+                BigDecimal.ZERO
+        ) <= 0) {
+
             return;
+        }
+
+        if (caixaHistoricoRepository
+                .existsByOrigemAndOrigemCodigo(
+                        OrigemMovimentacaoCaixa.PROCEDIMENTO,
+                        item.getCodigo()
+                )) {
+
+            throw new BusinessRuleException(
+                    "Este procedimento já possui movimentação financeira."
+            );
         }
 
         String nomePaciente =
                 odontograma.getNome() != null
-                        && !odontograma.getNome().isBlank()
+                        && !odontograma
+                        .getNome()
+                        .isBlank()
                         ? odontograma.getNome()
                         : "PACIENTE";
 
         String nomeProcedimento =
-                item.getProcedimento().getNome();
+                item.getProcedimento()
+                        .getNome();
 
         String observacao =
                 "PAGAMENTO DO PACIENTE "
@@ -205,17 +227,31 @@ public class OdontogramaConclusaoService {
 
         CaixaHistorico historico =
                 CaixaHistorico.builder()
-                        .tipo("ENTRADA")
-                        .caixa(caixa)
+                        .tipo(
+                                "ENTRADA"
+                        )
+                        .origem(
+                                OrigemMovimentacaoCaixa.PROCEDIMENTO
+                        )
+                        .origemCodigo(
+                                item.getCodigo()
+                        )
+                        .caixa(
+                                caixa
+                        )
                         .descricao(
                                 "FINALIZAÇÃO DE PROCEDIMENTO"
                         )
-                        .observacao(observacao)
+                        .observacao(
+                                observacao
+                        )
                         .data(
                                 LocalDateTime.now()
                                         .withNano(0)
                         )
-                        .valor(valor)
+                        .valor(
+                                valor
+                        )
                         .build();
 
         caixaHistoricoRepository.save(
@@ -277,7 +313,9 @@ public class OdontogramaConclusaoService {
             Integer codigo
     ) {
         return odontogramaRepository
-                .findById(codigo)
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Odontograma não encontrado. Código: "
