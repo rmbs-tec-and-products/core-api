@@ -34,6 +34,9 @@ logs/
 *.pem
 *.key
 
+# Local file storage
+storage/
+
 # OS
 .DS_Store
 Thumbs.db
