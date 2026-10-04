@@ -6,6 +6,7 @@ import br.com.migracao.core.dto.odontograma.OdontogramaRequest;
 import br.com.migracao.core.dto.odontograma.OdontogramaResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaResumoResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaStatusRequest;
+import br.com.migracao.core.service.OdontogramaConclusaoService;
 import br.com.migracao.core.service.OdontogramaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 public class OdontogramaController {
 
     private final OdontogramaService odontogramaService;
+    private final OdontogramaConclusaoService odontogramaConclusaoService;
 
     @PostMapping("/odontogramas")
     public ResponseEntity<OdontogramaResponse> cadastrar(
@@ -198,5 +200,22 @@ public class OdontogramaController {
         return ResponseEntity
                 .noContent()
                 .build();
+    }
+
+    @PostMapping("/odontogramas/{codigo}/procedimentos/{itemCodigo}/concluir")
+    public ResponseEntity<OdontogramaProcedimentoResponse> concluirProcedimento(
+            @PathVariable
+            Integer codigo,
+
+            @PathVariable
+            Integer itemCodigo
+    ) {
+        return ResponseEntity.ok(
+                odontogramaConclusaoService
+                        .concluir(
+                                codigo,
+                                itemCodigo
+                        )
+        );
     }
 }
