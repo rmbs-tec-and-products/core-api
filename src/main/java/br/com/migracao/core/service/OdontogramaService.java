@@ -3,9 +3,15 @@ package br.com.migracao.core.service;
 import br.com.migracao.core.domain.entity.Odontograma;
 import br.com.migracao.core.domain.entity.OdontogramaDente;
 import br.com.migracao.core.domain.entity.OdontogramaDenteId;
+import br.com.migracao.core.domain.entity.OdontogramaProcedimento;
 import br.com.migracao.core.domain.entity.Paciente;
+import br.com.migracao.core.domain.entity.Procedimento;
+import br.com.migracao.core.domain.enums.FaceDente;
 import br.com.migracao.core.domain.enums.StatusOdontograma;
+import br.com.migracao.core.domain.enums.StatusProcedimentoOdontograma;
 import br.com.migracao.core.domain.enums.TipoOdontograma;
+import br.com.migracao.core.dto.odontograma.OdontogramaProcedimentoRequest;
+import br.com.migracao.core.dto.odontograma.OdontogramaProcedimentoResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaRequest;
 import br.com.migracao.core.dto.odontograma.OdontogramaResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaResumoResponse;
@@ -14,16 +20,20 @@ import br.com.migracao.core.exception.BusinessRuleException;
 import br.com.migracao.core.exception.ResourceNotFoundException;
 import br.com.migracao.core.mapper.OdontogramaMapper;
 import br.com.migracao.core.repository.OdontogramaDenteRepository;
+import br.com.migracao.core.repository.OdontogramaProcedimentoRepository;
 import br.com.migracao.core.repository.OdontogramaRepository;
 import br.com.migracao.core.repository.PacienteRepository;
+import br.com.migracao.core.repository.ProcedimentoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +49,9 @@ public class OdontogramaService {
 
     private final OdontogramaRepository odontogramaRepository;
     private final OdontogramaDenteRepository odontogramaDenteRepository;
+    private final OdontogramaProcedimentoRepository odontogramaProcedimentoRepository;
     private final PacienteRepository pacienteRepository;
+    private final ProcedimentoRepository procedimentoRepository;
     private final OdontogramaMapper odontogramaMapper;
 
     @Transactional
@@ -131,13 +143,12 @@ public class OdontogramaService {
                         .getCodigo()
         );
 
-        Odontograma odontogramaSalvo =
-                odontogramaRepository.save(
-                        odontograma
-                );
+        odontogramaRepository.save(
+                odontograma
+        );
 
         return montarResponse(
-                odontogramaSalvo
+                odontograma
         );
     }
 
@@ -223,12 +234,360 @@ public class OdontogramaService {
         odontogramaDenteRepository
                 .deleteById(id);
 
-        odontogramaDenteRepository
-                .flush();
+        odontogramaDenteRepository.flush();
 
         return montarResponse(
                 odontograma
         );
+    }
+
+    @Transactional
+    public OdontogramaProcedimentoResponse adicionarProcedimento(
+            Integer odontogramaCodigo,
+            OdontogramaProcedimentoRequest request
+    ) {
+        Odontograma odontograma =
+                buscarEntidade(
+                        odontogramaCodigo
+                );
+
+        validarOdontogramaAdulto(
+                odontograma
+        );
+
+        validarDentePermanente(
+                request.dente()
+        );
+
+        validarDenteDisponivel(
+                odontogramaCodigo,
+                request.dente()
+        );
+
+        validarStatusParaEdicao(
+                request.status()
+        );
+
+        Procedimento procedimento =
+                buscarProcedimento(
+                        request.procedimentoCodigo()
+                );
+
+        BigDecimal valor =
+                definirValor(
+                        request.valor(),
+                        procedimento
+                );
+
+        OdontogramaProcedimento item =
+                OdontogramaProcedimento.builder()
+                        .odontograma(odontograma)
+                        .procedimento(procedimento)
+                        .dente(request.dente())
+                        .status(
+                                request.status()
+                                        .getCodigo()
+                        )
+                        .valor(valor)
+                        .face(
+                                converterFacesParaBanco(
+                                        request.faces()
+                                )
+                        )
+                        .observacao(
+                                normalizarObservacao(
+                                        request.observacao()
+                                )
+                        )
+                        .data(
+                                normalizarData(
+                                        LocalDateTime.now()
+                                )
+                        )
+                        .build();
+
+        OdontogramaProcedimento salvo =
+                odontogramaProcedimentoRepository
+                        .saveAndFlush(item);
+
+        recalcularValorOdontograma(
+                odontograma
+        );
+
+        return odontogramaMapper
+                .toProcedimentoResponse(
+                        salvo
+                );
+    }
+
+    @Transactional
+    public OdontogramaProcedimentoResponse alterarProcedimento(
+            Integer odontogramaCodigo,
+            Integer itemCodigo,
+            OdontogramaProcedimentoRequest request
+    ) {
+        Odontograma odontograma =
+                buscarEntidade(
+                        odontogramaCodigo
+                );
+
+        validarOdontogramaAdulto(
+                odontograma
+        );
+
+        OdontogramaProcedimento item =
+                buscarItem(
+                        odontogramaCodigo,
+                        itemCodigo
+                );
+
+        validarItemNaoConcluido(
+                item
+        );
+
+        validarDentePermanente(
+                request.dente()
+        );
+
+        validarDenteDisponivel(
+                odontogramaCodigo,
+                request.dente()
+        );
+
+        validarStatusParaEdicao(
+                request.status()
+        );
+
+        Procedimento procedimento =
+                buscarProcedimento(
+                        request.procedimentoCodigo()
+                );
+
+        BigDecimal valor =
+                definirValor(
+                        request.valor(),
+                        procedimento
+                );
+
+        item.setProcedimento(
+                procedimento
+        );
+
+        item.setDente(
+                request.dente()
+        );
+
+        item.setStatus(
+                request.status()
+                        .getCodigo()
+        );
+
+        item.setValor(
+                valor
+        );
+
+        item.setFace(
+                converterFacesParaBanco(
+                        request.faces()
+                )
+        );
+
+        item.setObservacao(
+                normalizarObservacao(
+                        request.observacao()
+                )
+        );
+
+        OdontogramaProcedimento salvo =
+                odontogramaProcedimentoRepository
+                        .saveAndFlush(item);
+
+        recalcularValorOdontograma(
+                odontograma
+        );
+
+        return odontogramaMapper
+                .toProcedimentoResponse(
+                        salvo
+                );
+    }
+
+    @Transactional
+    public void excluirProcedimento(
+            Integer odontogramaCodigo,
+            Integer itemCodigo
+    ) {
+        Odontograma odontograma =
+                buscarEntidade(
+                        odontogramaCodigo
+                );
+
+        OdontogramaProcedimento item =
+                buscarItem(
+                        odontogramaCodigo,
+                        itemCodigo
+                );
+
+        validarItemNaoConcluido(
+                item
+        );
+
+        odontogramaProcedimentoRepository
+                .delete(item);
+
+        odontogramaProcedimentoRepository
+                .flush();
+
+        recalcularValorOdontograma(
+                odontograma
+        );
+    }
+
+    private void recalcularValorOdontograma(
+            Odontograma odontograma
+    ) {
+        List<OdontogramaProcedimento> itens =
+                odontogramaProcedimentoRepository
+                        .findByOdontograma_CodigoOrderByCodigoAsc(
+                                odontograma.getCodigo()
+                        );
+
+        BigDecimal total =
+                itens.stream()
+                        .filter(
+                                this::entraNoValorPendente
+                        )
+                        .map(
+                                OdontogramaProcedimento::getValor
+                        )
+                        .filter(
+                                valor ->
+                                        valor != null
+                        )
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
+
+        odontograma.setValor(
+                total
+        );
+
+        odontogramaRepository.save(
+                odontograma
+        );
+    }
+
+    private boolean entraNoValorPendente(
+            OdontogramaProcedimento item
+    ) {
+        return !StatusProcedimentoOdontograma
+                .CONCLUIDO
+                .getCodigo()
+                .equals(
+                        item.getStatus()
+                );
+    }
+
+    private void validarStatusParaEdicao(
+            StatusProcedimentoOdontograma status
+    ) {
+        if (StatusProcedimentoOdontograma
+                .CONCLUIDO
+                .equals(status)) {
+
+            throw new BusinessRuleException(
+                    "Para concluir um procedimento utilize a operação de conclusão."
+            );
+        }
+    }
+
+    private void validarItemNaoConcluido(
+            OdontogramaProcedimento item
+    ) {
+        if (StatusProcedimentoOdontograma
+                .CONCLUIDO
+                .getCodigo()
+                .equals(
+                        item.getStatus()
+                )) {
+
+            throw new BusinessRuleException(
+                    "Procedimento concluído não pode ser alterado ou excluído."
+            );
+        }
+    }
+
+    private void validarDenteDisponivel(
+            Integer odontogramaCodigo,
+            Integer dente
+    ) {
+        OdontogramaDenteId id =
+                new OdontogramaDenteId(
+                        odontogramaCodigo,
+                        dente
+                );
+
+        if (odontogramaDenteRepository
+                .existsById(id)) {
+
+            throw new BusinessRuleException(
+                    "O dente "
+                            + dente
+                            + " está excluído do odontograma."
+            );
+        }
+    }
+
+    private BigDecimal definirValor(
+            BigDecimal valorInformado,
+            Procedimento procedimento
+    ) {
+        if (valorInformado != null) {
+            return valorInformado;
+        }
+
+        if (procedimento.getValor() != null) {
+            return procedimento.getValor();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    private String converterFacesParaBanco(
+            List<FaceDente> faces
+    ) {
+        if (faces == null || faces.isEmpty()) {
+            return null;
+        }
+
+        LinkedHashSet<FaceDente> facesUnicas =
+                new LinkedHashSet<>(
+                        faces
+                );
+
+        return facesUnicas.stream()
+                .map(
+                        FaceDente::getDescricao
+                )
+                .collect(
+                        Collectors.joining("|")
+                );
+    }
+
+    private String normalizarObservacao(
+            String observacao
+    ) {
+        if (observacao == null) {
+            return null;
+        }
+
+        String valor =
+                observacao.trim();
+
+        return valor.isBlank()
+                ? null
+                : valor;
     }
 
     private OdontogramaResponse montarResponse(
@@ -240,9 +599,16 @@ public class OdontogramaService {
                                 odontograma.getCodigo()
                         );
 
+        List<OdontogramaProcedimento> procedimentos =
+                odontogramaProcedimentoRepository
+                        .findByOdontograma_CodigoOrderByCodigoAsc(
+                                odontograma.getCodigo()
+                        );
+
         return odontogramaMapper.toResponse(
                 odontograma,
-                dentes
+                dentes,
+                procedimentos
         );
     }
 
@@ -268,6 +634,36 @@ public class OdontogramaService {
                         new ResourceNotFoundException(
                                 "Paciente não encontrado. Código: "
                                         + codigo
+                        )
+                );
+    }
+
+    private Procedimento buscarProcedimento(
+            Integer codigo
+    ) {
+        return procedimentoRepository
+                .findById(codigo)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Procedimento não encontrado. Código: "
+                                        + codigo
+                        )
+                );
+    }
+
+    private OdontogramaProcedimento buscarItem(
+            Integer odontogramaCodigo,
+            Integer itemCodigo
+    ) {
+        return odontogramaProcedimentoRepository
+                .findByCodigoAndOdontograma_Codigo(
+                        itemCodigo,
+                        odontogramaCodigo
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Procedimento do odontograma não encontrado. Código: "
+                                        + itemCodigo
                         )
                 );
     }

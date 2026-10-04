@@ -1,5 +1,7 @@
 package br.com.migracao.core.controller;
 
+import br.com.migracao.core.dto.odontograma.OdontogramaProcedimentoRequest;
+import br.com.migracao.core.dto.odontograma.OdontogramaProcedimentoResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaRequest;
 import br.com.migracao.core.dto.odontograma.OdontogramaResponse;
 import br.com.migracao.core.dto.odontograma.OdontogramaResumoResponse;
@@ -122,5 +124,79 @@ public class OdontogramaController {
                                 dente
                         )
         );
+    }
+
+    @PostMapping("/odontogramas/{codigo}/procedimentos")
+    public ResponseEntity<OdontogramaProcedimentoResponse> adicionarProcedimento(
+            @PathVariable
+            Integer codigo,
+
+            @Valid
+            @RequestBody
+            OdontogramaProcedimentoRequest request
+    ) {
+        OdontogramaProcedimentoResponse response =
+                odontogramaService
+                        .adicionarProcedimento(
+                                codigo,
+                                request
+                        );
+
+        URI location =
+                ServletUriComponentsBuilder
+                        .fromCurrentContextPath()
+                        .path(
+                                "/api/v1/odontogramas/{codigo}/procedimentos/{itemCodigo}"
+                        )
+                        .buildAndExpand(
+                                codigo,
+                                response.codigo()
+                        )
+                        .toUri();
+
+        return ResponseEntity
+                .created(location)
+                .body(response);
+    }
+
+    @PutMapping("/odontogramas/{codigo}/procedimentos/{itemCodigo}")
+    public ResponseEntity<OdontogramaProcedimentoResponse> alterarProcedimento(
+            @PathVariable
+            Integer codigo,
+
+            @PathVariable
+            Integer itemCodigo,
+
+            @Valid
+            @RequestBody
+            OdontogramaProcedimentoRequest request
+    ) {
+        return ResponseEntity.ok(
+                odontogramaService
+                        .alterarProcedimento(
+                                codigo,
+                                itemCodigo,
+                                request
+                        )
+        );
+    }
+
+    @DeleteMapping("/odontogramas/{codigo}/procedimentos/{itemCodigo}")
+    public ResponseEntity<Void> excluirProcedimento(
+            @PathVariable
+            Integer codigo,
+
+            @PathVariable
+            Integer itemCodigo
+    ) {
+        odontogramaService
+                .excluirProcedimento(
+                        codigo,
+                        itemCodigo
+                );
+
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 }

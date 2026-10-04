@@ -26,7 +26,9 @@ public record OdontogramaResponse(
 
         Boolean odontopediatria,
 
-        List<Integer> dentesExcluidos
+        List<Integer> dentesExcluidos,
+
+        List<OdontogramaProcedimentoResponse> procedimentos
 
 ) {
 }
