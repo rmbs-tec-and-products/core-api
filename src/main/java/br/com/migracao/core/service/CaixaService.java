@@ -23,6 +23,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CaixaService {
 
+    private static final String DESCRICAO_MOVIMENTACAO_AUTOMATICA =
+            "FINALIZAÇÃO DE PROCEDIMENTO";
+
     private final CaixaRepository caixaRepository;
     private final CaixaHistoricoRepository caixaHistoricoRepository;
     private final CaixaMapper caixaMapper;
@@ -181,6 +184,10 @@ public class CaixaService {
 
         validarCaixaAberto(caixa);
 
+        validarDescricaoNaoReservada(
+                request.descricao()
+        );
+
         CaixaHistorico historico =
                 new CaixaHistorico();
 
@@ -233,6 +240,14 @@ public class CaixaService {
                         movimentacaoCodigo
                 );
 
+        validarMovimentacaoManual(
+                historico
+        );
+
+        validarDescricaoNaoReservada(
+                request.descricao()
+        );
+
         historico.setTipo(
                 request.tipo().name()
         );
@@ -274,6 +289,10 @@ public class CaixaService {
                         caixaCodigo,
                         movimentacaoCodigo
                 );
+
+        validarMovimentacaoManual(
+                historico
+        );
 
         caixaHistoricoRepository.delete(historico);
     }
@@ -339,6 +358,36 @@ public class CaixaService {
         if (caixa.getDataFechamento() != null) {
             throw new BusinessRuleException(
                     "O caixa já está fechado."
+            );
+        }
+    }
+
+    private void validarMovimentacaoManual(
+            CaixaHistorico historico
+    ) {
+        if (historico.getDescricao() != null
+                && DESCRICAO_MOVIMENTACAO_AUTOMATICA
+                .equalsIgnoreCase(
+                        historico.getDescricao().trim()
+                )) {
+
+            throw new BusinessRuleException(
+                    "Movimentações geradas automaticamente pela conclusão de procedimento não podem ser alteradas ou excluídas."
+            );
+        }
+    }
+
+    private void validarDescricaoNaoReservada(
+            String descricao
+    ) {
+        if (descricao != null
+                && DESCRICAO_MOVIMENTACAO_AUTOMATICA
+                .equalsIgnoreCase(
+                        descricao.trim()
+                )) {
+
+            throw new BusinessRuleException(
+                    "A descrição FINALIZAÇÃO DE PROCEDIMENTO é reservada para movimentações automáticas."
             );
         }
     }
