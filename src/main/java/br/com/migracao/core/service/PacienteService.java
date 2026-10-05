@@ -4,6 +4,7 @@ import br.com.migracao.core.domain.entity.Paciente;
 import br.com.migracao.core.dto.paciente.PacienteRequest;
 import br.com.migracao.core.dto.paciente.PacienteResponse;
 import br.com.migracao.core.dto.paciente.PacienteResumoResponse;
+import br.com.migracao.core.exception.BusinessRuleException;
 import br.com.migracao.core.exception.ResourceNotFoundException;
 import br.com.migracao.core.mapper.PacienteMapper;
 import br.com.migracao.core.repository.PacienteRepository;
@@ -25,12 +26,27 @@ public class PacienteService {
             PacienteRequest request
     ) {
 
-        Paciente paciente = pacienteMapper.toEntity(request);
+        validarDadosContato(
+                request
+        );
+
+        Paciente paciente =
+                pacienteMapper.toEntity(
+                        request
+                );
+
+        normalizarCamposOpcionais(
+                paciente
+        );
 
         Paciente pacienteSalvo =
-                pacienteRepository.save(paciente);
+                pacienteRepository.save(
+                        paciente
+                );
 
-        return pacienteMapper.toResponse(pacienteSalvo);
+        return pacienteMapper.toResponse(
+                pacienteSalvo
+        );
     }
 
     @Transactional(readOnly = true)
@@ -40,19 +56,24 @@ public class PacienteService {
 
         List<Paciente> pacientes;
 
-        if (pesquisa == null || pesquisa.isBlank()) {
+        if (pesquisa == null
+                || pesquisa.isBlank()) {
 
-            pacientes = pacienteRepository.findAll();
+            pacientes =
+                    pacienteRepository.findAll();
 
         } else {
 
-            pacientes = pacienteRepository.pesquisar(
-                    pesquisa.trim()
-            );
+            pacientes =
+                    pacienteRepository.pesquisar(
+                            pesquisa.trim()
+                    );
         }
 
         return pacientes.stream()
-                .map(pacienteMapper::toResumoResponse)
+                .map(
+                        pacienteMapper::toResumoResponse
+                )
                 .toList();
     }
 
@@ -61,9 +82,14 @@ public class PacienteService {
             Integer codigo
     ) {
 
-        Paciente paciente = buscarEntidade(codigo);
+        Paciente paciente =
+                buscarEntidade(
+                        codigo
+                );
 
-        return pacienteMapper.toResponse(paciente);
+        return pacienteMapper.toResponse(
+                paciente
+        );
     }
 
     @Transactional
@@ -72,17 +98,32 @@ public class PacienteService {
             PacienteRequest request
     ) {
 
-        Paciente paciente = buscarEntidade(codigo);
+        validarDadosContato(
+                request
+        );
+
+        Paciente paciente =
+                buscarEntidade(
+                        codigo
+                );
 
         pacienteMapper.updateEntity(
                 paciente,
                 request
         );
 
-        Paciente pacienteSalvo =
-                pacienteRepository.save(paciente);
+        normalizarCamposOpcionais(
+                paciente
+        );
 
-        return pacienteMapper.toResponse(pacienteSalvo);
+        Paciente pacienteSalvo =
+                pacienteRepository.save(
+                        paciente
+                );
+
+        return pacienteMapper.toResponse(
+                pacienteSalvo
+        );
     }
 
     @Transactional
@@ -90,19 +131,118 @@ public class PacienteService {
             Integer codigo
     ) {
 
-        Paciente paciente = buscarEntidade(codigo);
+        Paciente paciente =
+                buscarEntidade(
+                        codigo
+                );
 
-        pacienteRepository.delete(paciente);
+        pacienteRepository.delete(
+                paciente
+        );
+    }
+
+    private void validarDadosContato(
+            PacienteRequest request
+    ) {
+
+        String telefone =
+                somenteDigitos(
+                        request.telefone()
+                );
+
+        if (!telefone.isBlank()
+                && telefone.length() != 10) {
+
+            throw new BusinessRuleException(
+                    "Telefone fixo deve possuir 10 dígitos, incluindo o DDD."
+            );
+        }
+
+        String celular =
+                somenteDigitos(
+                        request.celular()
+                );
+
+        if (celular.length() != 11) {
+
+            throw new BusinessRuleException(
+                    "Celular deve possuir 11 dígitos, incluindo o DDD."
+            );
+        }
+
+        String documento =
+                somenteDigitos(
+                        request.cpf()
+                );
+
+        if (!documento.isBlank()
+                && documento.length() != 11
+                && documento.length() != 14) {
+
+            throw new BusinessRuleException(
+                    "CPF deve possuir 11 dígitos ou CNPJ deve possuir 14 dígitos."
+            );
+        }
+    }
+
+    private void normalizarCamposOpcionais(
+            Paciente paciente
+    ) {
+
+        paciente.setTelefone(
+                normalizarOpcional(
+                        paciente.getTelefone()
+                )
+        );
+
+        paciente.setCpf(
+                normalizarOpcional(
+                        paciente.getCpf()
+                )
+        );
+    }
+
+    private String normalizarOpcional(
+            String valor
+    ) {
+
+        if (valor == null
+                || valor.isBlank()) {
+
+            return null;
+        }
+
+        return valor.trim();
+    }
+
+    private String somenteDigitos(
+            String valor
+    ) {
+
+        if (valor == null
+                || valor.isBlank()) {
+
+            return "";
+        }
+
+        return valor.replaceAll(
+                "\\D",
+                ""
+        );
     }
 
     private Paciente buscarEntidade(
             Integer codigo
     ) {
 
-        return pacienteRepository.findById(codigo)
+        return pacienteRepository
+                .findById(
+                        codigo
+                )
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Paciente não encontrado. Código: " + codigo
+                                "Paciente não encontrado. Código: "
+                                        + codigo
                         )
                 );
     }

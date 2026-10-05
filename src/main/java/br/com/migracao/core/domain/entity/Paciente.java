@@ -21,40 +21,75 @@ public class Paciente {
     @Column(name = "codigo")
     private Integer codigo;
 
-    @Column(name = "nome", nullable = false, length = 300)
+    @Column(
+            name = "nome",
+            nullable = false,
+            length = 300
+    )
     private String nome;
 
-    @Column(name = "telefone", nullable = false, length = 15)
+    @Column(
+            name = "telefone",
+            length = 15
+    )
     private String telefone;
 
-    @Column(name = "celular", nullable = false, length = 15)
+    @Column(
+            name = "celular",
+            nullable = false,
+            length = 15
+    )
     private String celular;
 
-    @Column(name = "cpf", length = 15)
+    @Column(
+            name = "cpf",
+            length = 18
+    )
     private String cpf;
 
     @Column(name = "datanascimento")
     private LocalDateTime dataNascimento;
 
-    @Column(name = "sexo", length = 10)
+    @Column(
+            name = "sexo",
+            length = 10
+    )
     private String sexo;
 
-    @Column(name = "endereco", length = 200)
+    @Column(
+            name = "endereco",
+            length = 200
+    )
     private String endereco;
 
-    @Column(name = "numero", length = 20)
+    @Column(
+            name = "numero",
+            length = 20
+    )
     private String numero;
 
-    @Column(name = "cep", length = 10)
+    @Column(
+            name = "cep",
+            length = 10
+    )
     private String cep;
 
-    @Column(name = "cidade", length = 100)
+    @Column(
+            name = "cidade",
+            length = 100
+    )
     private String cidade;
 
-    @Column(name = "estado", length = 2)
+    @Column(
+            name = "estado",
+            length = 2
+    )
     private String estado;
 
-    @Column(name = "bairro", length = 50)
+    @Column(
+            name = "bairro",
+            length = 50
+    )
     private String bairro;
 
     @OneToOne(
@@ -70,12 +105,14 @@ public class Paciente {
             fetch = FetchType.LAZY
     )
     @Builder.Default
-    private List<Agenda> agendas = new ArrayList<>();
+    private List<Agenda> agendas =
+            new ArrayList<>();
 
     @OneToMany(
             mappedBy = "paciente",
             fetch = FetchType.LAZY
     )
     @Builder.Default
-    private List<Odontograma> odontogramas = new ArrayList<>();
+    private List<Odontograma> odontogramas =
+            new ArrayList<>();
 }
